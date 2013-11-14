@@ -1,0 +1,58 @@
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Base application theme, dependent on API level. This theme is replaced
+        by AppBaseTheme from res/values-vXX/styles.xml on newer devices.
+    -->
+    <style name="AppBaseTheme" parent="android:Theme.Light">
+        <!--
+            Theme customizations available in newer API levels can go in
+            res/values-vXX/styles.xml, while customizations related to
+            backward-compatibility can go here.
+        -->
+    </style>
+
+    <!-- Application theme. -->
+    <style name="AppTheme" parent="AppBaseTheme">
+        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+        
+    </style>
+    
+    
+    <style name="Button">
+        <item name="android:background">@drawable/blue_button</item>
+        <item name="android:layout_margin">3dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+		<item name="android:textSize">20sp</item>
+    	<item name="android:textStyle">bold</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:gravity">center_vertical|center_horizontal</item>
+    </style>
+    
+    <style name="SmallButton" parent="Button">
+        <item name="android:background">@drawable/green_button</item>
+        <item name="android:minHeight">18dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:gravity">left|center_vertical</item>
+    </style>
+    
+    <style name="SeekBar">
+         <item name="android:thumb">@drawable/knob</item>
+         <item name="android:progressDrawable">@drawable/progress</item>
+         <!-- <item name="android:thumbOffset">5dp</item> -->
+    </style>
+  
+    <color name="SemiTransparent">#88888888</color>
+    
+    <color name="blue">#428bca</color>
+    <color name="darkBlue">#3276b1</color>
+    
+    <color name="green">#5cb85c</color>
+    <color name="darkGreen">#47a447</color>
+    
+    <color name="red">#d9534f</color>
+    <color name="darkRed">#d2322d</color>
+
+</resources>
