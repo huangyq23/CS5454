@@ -39,7 +39,6 @@ public class EmbusyBackgroundService extends Service implements
 	private static final float LOCATION_DISTANCE = 10f;
 	private LocationListener locationListener;
 
-	private final IBinder mBinder = new LocalBinder();
 	private EmbusyBackgroundService ms = this;
 
 	private boolean rang = false;
@@ -47,28 +46,24 @@ public class EmbusyBackgroundService extends Service implements
 
 	private SensorManager mSensorManager;
 	private Sensor mAccelerometer;
-	private boolean mIsCollecting;
 
 	private LocationStore locationStore;
 
 	public ArrayList<String> classifyResults;
 	public String finalResult;
 
-	@Override
-	public IBinder onBind(Intent arg0) {
-		return mBinder;
-	}
-
-	public class LocalBinder extends Binder {
-		EmbusyBackgroundService getService() {
-			return ms;
-		}
-	}
-
 	public Location getLocation() {
 		Log.e(TAG, "Getting location");
 		return locationListener.getCurrentBestLocation();
 	}
+	
+	private static EmbusyBackgroundService instance = null;
+	
+	public static boolean isInstanceCreated() { 
+      return instance != null; 
+   }
+	
+	
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
@@ -106,6 +101,10 @@ public class EmbusyBackgroundService extends Service implements
 					"Can't talk now, call you back in %d mins",
 					event.remainingSeconds / 60));
 		}
+		
+		if(finalResult.equals(("walk"))){
+			
+		}
 
 		Location loc = locationListener.getCurrentBestLocation();
 		if (loc != null) {
@@ -126,16 +125,16 @@ public class EmbusyBackgroundService extends Service implements
 	  					homeLocation.lat, homeLocation.lng);
 
 	  			Log.e(TAG, "Direction Got: " + homeDirectionTime);
-	  			if (homeDirectionTime != -1) {
+	  			if (homeDirectionTime >= 3) {
 	  				locationSuggestionlist.add(new EBSuggestion("Walk to Home",
-	  						"Heading home, Will arrive in %d mins",
+	  						"Heading home, arrive in %d mins",
 	  						homeDirectionTime / 60));
 	  			}
 
 	  			int workDirectionTime = DirectionUtils.getDurationBetween(lat, lng,
 	  					workLocation.lat, workLocation.lng);
 
-	  			if (workDirectionTime != -1) {
+	  			if (workDirectionTime>=3) {
 	  				locationSuggestionlist.add(new EBSuggestion("Walk to Work",
 	  						"On my way to office, call you back in %d mins",
 	  						workDirectionTime / 60));
@@ -182,7 +181,7 @@ public class EmbusyBackgroundService extends Service implements
 		finalResult = maxStr;
 	}
 
-	class UpdateAccTask extends TimerTask {
+	private class UpdateAccelerometerTask extends TimerTask {
 
 		public void run() {
 			// calculate the new position of myBall
@@ -205,6 +204,8 @@ public class EmbusyBackgroundService extends Service implements
 
 	@Override
 	public void onCreate() {
+		super.onCreate();
+		instance = this;
 		Log.e(TAG, "onCreate");
 		initializeLocationManager();
 		registerPhoneCallStateBroadCastReceiver();
@@ -218,7 +219,7 @@ public class EmbusyBackgroundService extends Service implements
 
 		ses = Executors.newScheduledThreadPool(5);
 
-		ses.scheduleAtFixedRate(new UpdateAccTask(), 0, 20, TimeUnit.SECONDS);
+		ses.scheduleAtFixedRate(new UpdateAccelerometerTask(), 0, 20, TimeUnit.SECONDS);
 
 	}
 
@@ -238,6 +239,7 @@ public class EmbusyBackgroundService extends Service implements
 	public void onDestroy() {
 		Log.e(TAG, "onDestroy");
 		super.onDestroy();
+		instance = null;
 		if (mLocationManager != null) {
 			try {
 				mLocationManager.removeUpdates(locationListener);
@@ -285,7 +287,7 @@ public class EmbusyBackgroundService extends Service implements
 
 	}
 
-	class DataInASecond {
+	private class DataInASecond {
 		public ArrayList<DataUnit> arr;
 		public long startMs;
 		public double mean;
@@ -326,24 +328,6 @@ public class EmbusyBackgroundService extends Service implements
 
 		public String classify() {
 			computeFeatures();
-			// Log.v(TAG, "ArrayLength=" + this.arr.size());
-			// Log.v(TAG, "mean=" + this.mean + " var="+this.var);
-			// variance <= 68.285972
-			// | variance <= 1.357996: still (594.0/1.0)
-			// | variance > 1.357996
-			// | | fft_2 <= 4371.576341
-			// | | | fft_3 <= 10228.377315: walk (29.0/14.0)
-			// | | | fft_3 > 10228.377315: run (9.0/3.0)
-			// | | fft_2 > 4371.576341
-			// | | | fft_1 <= 1394.584444: walk (570.0/1.0)
-			// | | | fft_1 > 1394.584444
-			// | | | | fft_1 <= 3392.720288: walk (14.0/1.0)
-			// | | | | fft_1 > 3392.720288: other (9.0/1.0)
-			// variance > 68.285972
-			// | fft_2 <= 27449.150444
-			// | | fft_1 <= 25096.917232: run (592.0/7.0)
-			// | | fft_1 > 25096.917232: other (17.0)
-			// | fft_2 > 27449.150444: other (566.0/4.0)
 			if (var <= 68.285972) {
 				if (var <= 1.357996) {
 					return "still";
@@ -398,7 +382,7 @@ public class EmbusyBackgroundService extends Service implements
 		return power;
 	}
 
-	class DataUnit {
+	private class DataUnit {
 		public double x;
 		public double y;
 		public double z;
@@ -425,29 +409,19 @@ public class EmbusyBackgroundService extends Service implements
 			// continue to record
 			lastSecond.arr.add(du);
 		} else {
-			// start new dataInSecond
-			// if(label.equals("still")){
-			// System.out.println(du.ms);
-			// }
-
 			String classifyResult = lastSecond.classify();
 
 			classifyResults.add(classifyResult);
-
-			// mAccelDump.recordActivity(classifyResult, trainingMode);
-
 			DataInASecond dia = new DataInASecond();
 			dia.startMs = du.ms;
 			dia.arr.add(du);
 
-			// System.out.println(label);
-			// System.out.println(du.ms);
 			lastSecond = dia;
 		}
 	}
 
 	private class LocationListener implements android.location.LocationListener {
-		private static final int TWO_MINUTES = 1000 * 60 * 1;
+		private static final int INTERVAL_THRESHOLD = 1000 * 60 * 1;// 1 Minute
 		private Location currentBestLocation;
 
 		public Location getCurrentBestLocation() {
@@ -486,8 +460,8 @@ public class EmbusyBackgroundService extends Service implements
 
 			// Check whether the new location fix is newer or older
 			long timeDelta = location.getTime() - currentBestLocation.getTime();
-			boolean isSignificantlyNewer = timeDelta > TWO_MINUTES;
-			boolean isSignificantlyOlder = timeDelta < -TWO_MINUTES;
+			boolean isSignificantlyNewer = timeDelta > INTERVAL_THRESHOLD;
+			boolean isSignificantlyOlder = timeDelta < -INTERVAL_THRESHOLD;
 			boolean isNewer = timeDelta > 0;
 
 			// If it's been more than two minutes since the current location,
@@ -532,5 +506,11 @@ public class EmbusyBackgroundService extends Service implements
 			}
 			return provider1.equals(provider2);
 		}
+	}
+
+	@Override
+	public IBinder onBind(Intent intent) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
